@@ -9,7 +9,6 @@ import com.test.application.rxjavatest.model.Post
 import com.test.application.rxjavatest.remote.RetrofitService
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 
@@ -35,12 +34,13 @@ class MainActivity : AppCompatActivity() {
             ) { posts, comments ->
                 Pair(posts, comments)
             }
+                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({ (posts, comments) ->
-                    Log.d("@@@", "Посты и комментарии сгруппированы." +
+                    Log.d("@@@", "Успешно загруженные данные" +
                             "Количество постов: ${posts.size}, Количество комментариев: ${comments.size}")
                 }, { error ->
-                    Log.d("@@@", "Ошибка при группировке данных", error)
+                    Log.d("@@@", "Ошибка при загрузке данных", error)
                 })
         )
     }
@@ -49,31 +49,20 @@ class MainActivity : AppCompatActivity() {
        commentsObservable = Observable.range(1, 5)
            .flatMapSingle { id ->
                RetrofitService.apiService.getComments(id)
-                   .onErrorResumeNext{
-                       Single.just(
-                           Comment(0, id, "Ошибка", "Электронная почта",
-                               "Комментарий не загружен")
-                       )}
                    .subscribeOn(Schedulers.io())
            }
            .toList()
            .toObservable()
-           .observeOn(AndroidSchedulers.mainThread())
     }
 
     private fun setupPostsObservables() {
         postsObservable = Observable.range(1, 5)
             .flatMapSingle { id ->
                 RetrofitService.apiService.getPosts(id)
-                    .onErrorResumeNext{
-                        Single.just(Post(0, id, "Ошибка",
-                            "Данный пост не удалось загрузить")
-                        )}
                     .subscribeOn(Schedulers.io())
             }
             .toList()
             .toObservable()
-            .observeOn(AndroidSchedulers.mainThread())
     }
 
     override fun onDestroy() {
